@@ -58,19 +58,28 @@ export class InstagramWebhookController {
                         this.logger.log(`Generated response: ${response}`);
 
                         // Post reply to Instagram
-                        await axios.post(
-                            `https://graph.facebook.com/v18.0/${comment.id}/replies`,
+                        const replyResponse = await axios.post(
+                            `https://graph.facebook.com/v22.0/${comment.id}/replies`,
                             {
                                 message: response,
-                                access_token: accessToken,
                             },
+                            {
+                                headers: {
+                                    'Authorization': `${accessToken}`,
+                                    'Content-Type': 'application/json',
+                                },
+                            }
                         );
                         this.logger.log(`Successfully replied to comment ${comment.id}`);
+                        this.logger.log('Instagram API Response:', JSON.stringify(replyResponse.data, null, 2));
                     } catch (error) {
                         this.logger.error(
                             `Error processing comment ${comment.id}: ${error.message}`,
                             error.stack,
                         );
+                        if (error.response) {
+                            this.logger.error('Instagram API Error Response:', JSON.stringify(error.response.data, null, 2));
+                        }
                         // Don't throw the error to prevent webhook retries
                         // Instagram will retry failed webhooks automatically
                     }
