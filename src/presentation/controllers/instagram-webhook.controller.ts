@@ -59,17 +59,19 @@ export class InstagramWebhookController {
 
                         // Post reply to Instagram
                         const replyResponse = await axios.post(
-                            `https://graph.facebook.com/v22.0/${comment.id}/replies`,
+                            `https://graph.instagram.com/v22.0/${comment.id}/replies`,
                             {
                                 message: response,
                             },
                             {
                                 headers: {
-                                    'Authorization': `${accessToken}`,
+
+                                    'Authorization': `Bearer ${accessToken}`,
                                     'Content-Type': 'application/json',
                                 },
                             }
                         );
+                        console.log(replyResponse)
                         this.logger.log(`Successfully replied to comment ${comment.id}`);
                         this.logger.log('Instagram API Response:', JSON.stringify(replyResponse.data, null, 2));
                     } catch (error) {

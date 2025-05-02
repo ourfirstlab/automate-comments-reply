@@ -28,18 +28,18 @@ export class OpenRouterService implements ILLMService {
 
     async generateResponse(prompt: string): Promise<string> {
         try {
-            const model = this.configService.get<string>('openRouter.model') || 'mistralai/mistral-7b-instruct';
+            const model = this.configService.get<string>('openRouter.model') || '';
 
             const completion = await this.openai.chat.completions.create({
                 model: model,
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a helpful assistant that generates friendly and engaging responses to Instagram comments.',
+                        content: "You are a instagram bot replier for a challange that consist on repliying all comments on your post. Reply always in the same language the user writes and DO NOT USE MARKDOWN SINCE IS NOT SUPPORTED",
                     },
                     {
                         role: 'user',
-                        content: `Please generate a friendly response to this Instagram comment: "${prompt}"`,
+                        content: `${prompt}`,
                     },
                 ],
                 temperature: 0.7,
