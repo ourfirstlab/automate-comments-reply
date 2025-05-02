@@ -1,0 +1,81 @@
+import { Controller, Get, Post, Query, Body, HttpCode, HttpStatus, Inject, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import { ILLMService } from '../../domain/services/llm.service.interface';
+import { InstagramWebhookEntry } from '../../domain/models/instagram-comment.model';
+import { WebhookVerificationDto } from '../dto/webhook-verification.dto';
+import { WebhookPayloadDto } from '../dto/webhook-payload.dto';
+import axios from 'axios';
+
+@ApiTags('Instagram Webhook')
+@Controller('webhook')
+export class InstagramWebhookController {
+    private readonly logger = new Logger(InstagramWebhookController.name);
+
+    constructor(
+        private readonly configService: ConfigService,
+        @Inject('ILLMService') private readonly llmService: ILLMService,
+    ) { }
+
+    @Get()
+    @ApiOperation({ summary: 'Handle webhook verification' })
+    @ApiQuery({ name: 'hub.mode', required: true, type: String })
+    @ApiQuery({ name: 'hub.verify_token', required: true, type: String })
+    @ApiQuery({ name: 'hub.challenge', required: true, type: String })
+    @ApiResponse({ status: 200, description: 'Returns the challenge string' })
+    @ApiResponse({ status: 400, description: 'Invalid verification request' })
+    async handleWebhookVerification(
+        @Query() query: WebhookVerificationDto,
+    ): Promise<string> {
+        const verifyToken = this.configService.get<string>('instagram.webhookVerifyToken');
+
+        if (query['hub.mode'] === 'subscribe' && query['hub.verify_token'] === verifyToken) {
+            this.logger.log('Webhook verification successful');
+            return query['hub.challenge'];
+        }
+        this.logger.warn('Invalid webhook verification request');
+        throw new Error('Invalid webhook verification request');
+    }
+
+    @Post()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Handle webhook notifications' })
+    @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid webhook payload' })
+    async handleWebhook(@Body() payload: WebhookPayloadDto): Promise<void> {
+        const accessToken = this.configService.get<string>('instagram.accessToken');
+
+        for (const entry of payload.entry) {
+            for (const change of entry.changes) {
+                if (change.field === 'comments') {
+                    const comment = change.value;
+
+                    try {
+                        this.logger.log(`Processing comment from ${comment.from.username}: ${comment.text}`);
+
+                        // Generate response using LLM
+                        const response = await this.llmService.generateResponse(comment.text);
+                        this.logger.log(`Generated response: ${response}`);
+
+                        // Post reply to Instagram
+                        await axios.post(
+                            `https://graph.facebook.com/v18.0/${comment.id}/replies`,
+                            {
+                                message: response,
+                                access_token: accessToken,
+                            },
+                        );
+                        this.logger.log(`Successfully replied to comment ${comment.id}`);
+                    } catch (error) {
+                        this.logger.error(
+                            `Error processing comment ${comment.id}: ${error.message}`,
+                            error.stack,
+                        );
+                        // Don't throw the error to prevent webhook retries
+                        // Instagram will retry failed webhooks automatically
+                    }
+                }
+            }
+        }
+    }
+} 
