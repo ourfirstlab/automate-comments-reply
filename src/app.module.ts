@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { InstagramWebhookController } from './presentation/controllers/instagram-webhook.controller';
 import { OpenRouterService } from './infrastructure/services/openrouter.service';
+import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 import configuration from './config/configuration';
 
 @Module({
@@ -20,4 +21,10 @@ import configuration from './config/configuration';
     },
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RequestLoggerMiddleware)
+      .forRoutes('webhook');
+  }
+}
