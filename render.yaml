@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: instagram-comment-bot
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: INSTAGRAM_ACCESS_TOKEN
+        sync: false
+      - key: INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+        sync: false
+      - key: INSTAGRAM_USERNAME
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: mistralai/mistral-7b-instruct 
