@@ -1,7 +1,8 @@
 export default () => ({
     instagram: {
-        webhookVerifyToken: process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
         accessToken: process.env.INSTAGRAM_ACCESS_TOKEN,
+        webhookVerifyToken: process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
+        username: process.env.INSTAGRAM_USERNAME,
     },
     openRouter: {
         apiKey: process.env.OPENROUTER_API_KEY,

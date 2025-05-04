@@ -44,11 +44,19 @@ export class InstagramWebhookController {
     @ApiResponse({ status: 400, description: 'Invalid webhook payload' })
     async handleWebhook(@Body() payload: WebhookPayloadDto): Promise<void> {
         const accessToken = this.configService.get<string>('instagram.accessToken');
+        const botUsername = this.configService.get<string>('instagram.username');
 
         for (const entry of payload.entry) {
             for (const change of entry.changes) {
                 if (change.field === 'comments') {
                     const comment = change.value;
+
+                    console.log(comment.from.username, botUsername)
+                    // Skip comments from the bot's own account
+                    if (comment.from.username === botUsername) {
+                        this.logger.log(`Skipping comment from bot's own account (${botUsername})`);
+                        continue;
+                    }
 
                     try {
                         this.logger.log(`Processing comment from ${comment.from.username}: ${comment.text}`);
