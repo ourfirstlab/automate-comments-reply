@@ -17,6 +17,14 @@ export class InstagramWebhookController {
         @Inject('ILLMService') private readonly llmService: ILLMService,
     ) { }
 
+    @Get('health')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Health check endpoint' })
+    @ApiResponse({ status: 200, description: 'Service is healthy' })
+    async healthCheck(): Promise<{ status: string }> {
+        return { status: 'ok' };
+    }
+
     @Get()
     @ApiOperation({ summary: 'Handle webhook verification' })
     @ApiQuery({ name: 'hub.mode', required: true, type: String })
