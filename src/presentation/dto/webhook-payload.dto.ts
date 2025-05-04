@@ -91,6 +91,15 @@ class CommentValueDto {
     @ValidateNested()
     @Type(() => MediaDto)
     media: MediaDto;
+
+    @ApiProperty({
+        description: 'The ID of the parent comment if this is a reply to another comment',
+        example: '17892955707215182',
+        required: false,
+    })
+    @IsString()
+    @IsOptional()
+    parent_id?: string;
 }
 
 class WebhookChangeDto {

@@ -52,6 +52,9 @@ export class InstagramWebhookController {
 
                     try {
                         this.logger.log(`Processing comment from ${comment.from.username}: ${comment.text}`);
+                        if (comment.parent_id) {
+                            this.logger.log(`This is a reply to comment ${comment.parent_id}`);
+                        }
 
                         // Generate response using LLM
                         const response = await this.llmService.generateResponse(comment.text);
@@ -61,17 +64,15 @@ export class InstagramWebhookController {
                         const replyResponse = await axios.post(
                             `https://graph.instagram.com/v22.0/${comment.id}/replies`,
                             {
-                                message: response,
+                                message: `@${comment.from.username} ${response}`,
                             },
                             {
                                 headers: {
-
                                     'Authorization': `Bearer ${accessToken}`,
                                     'Content-Type': 'application/json',
                                 },
                             }
                         );
-                        console.log(replyResponse)
                         this.logger.log(`Successfully replied to comment ${comment.id}`);
                         this.logger.log('Instagram API Response:', JSON.stringify(replyResponse.data, null, 2));
                     } catch (error) {
@@ -81,6 +82,16 @@ export class InstagramWebhookController {
                         );
                         if (error.response) {
                             this.logger.error('Instagram API Error Response:', JSON.stringify(error.response.data, null, 2));
+                            this.logger.error('Instagram API Error Status:', error.response.status);
+                            this.logger.error('Instagram API Error Headers:', JSON.stringify(error.response.headers, null, 2));
+                        }
+                        if (error.request) {
+                            this.logger.error('Instagram API Request:', {
+                                url: error.request.path,
+                                method: error.request.method,
+                                headers: error.request.headers,
+                                data: error.request.data,
+                            });
                         }
                         // Don't throw the error to prevent webhook retries
                         // Instagram will retry failed webhooks automatically

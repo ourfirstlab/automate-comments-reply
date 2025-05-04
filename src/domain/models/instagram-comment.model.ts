@@ -17,6 +17,7 @@ export interface InstagramWebhookEntry {
             };
             created_time: string;
             post_id: string;
+            parent_id?: string;
         };
         field: string;
     }[];

@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, ValidationError } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import * as bodyParser from 'body-parser';
@@ -15,11 +15,12 @@ async function bootstrap() {
     }
   }));
 
-  // Enable validation
+  // Enable validation with detailed error logging
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
     whitelist: true,
     forbidNonWhitelisted: true,
+    enableDebugMessages: true
   }));
 
   // Swagger documentation setup
