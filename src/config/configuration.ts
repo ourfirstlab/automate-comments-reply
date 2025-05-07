@@ -3,6 +3,7 @@ export default () => ({
         accessToken: process.env.INSTAGRAM_ACCESS_TOKEN,
         webhookVerifyToken: process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
         username: process.env.INSTAGRAM_USERNAME,
+        userId: process.env.INSTAGRAM_USER_ID,
     },
     openRouter: {
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -11,5 +12,8 @@ export default () => ({
     },
     app: {
         port: process.env.PORT || 3000,
+    },
+    mongodb: {
+        uri: process.env.MONGODB_URI,
     },
 }); 

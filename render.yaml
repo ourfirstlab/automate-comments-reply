@@ -15,7 +15,11 @@ services:
         sync: false
       - key: INSTAGRAM_USERNAME
         sync: false
+      - key: INSTAGRAM_USER_ID
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
       - key: OPENROUTER_MODEL
-        value: mistralai/mistral-7b-instruct 
+        value: mistralai/mistral-7b-instruct
+      - key: MONGODB_URI
+        sync: false 
