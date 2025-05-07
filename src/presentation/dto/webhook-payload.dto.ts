@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString, IsNumber, ValidateNested, IsObject, IsOptional } from 'class-validator';
+import { IsArray, IsString, IsNumber, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
-class CommentFromDto {
+export class CommentFromDto {
     @ApiProperty({
         description: 'Instagram-scoped ID of the Instagram user who made the comment',
         example: '123456789',
@@ -18,7 +18,7 @@ class CommentFromDto {
     username: string;
 }
 
-class MediaDto {
+export class MediaDto {
     @ApiProperty({
         description: 'Media ID that was commented on',
         example: '17911317054015405',
@@ -61,7 +61,7 @@ class MediaDto {
     media_product_type: string;
 }
 
-class CommentValueDto {
+export class CommentValueDto {
     @ApiProperty({
         description: 'The ID of the comment',
         example: '18038985995628134',
@@ -102,7 +102,7 @@ class CommentValueDto {
     parent_id?: string;
 }
 
-class WebhookChangeDto {
+export class WebhookChangeDto {
     @ApiProperty({
         description: 'The field that changed',
         example: 'comments',
@@ -119,7 +119,7 @@ class WebhookChangeDto {
     value: CommentValueDto;
 }
 
-class WebhookEntryDto {
+export class WebhookEntryDto {
     @ApiProperty({
         description: 'ID of your app user\'s Instagram professional account',
         example: '17841463234297561',

@@ -5,6 +5,11 @@ import { ILLMService } from '../../domain/services/llm.service.interface';
 import { InstagramWebhookEntry } from '../../domain/models/instagram-comment.model';
 import { WebhookVerificationDto } from '../dto/webhook-verification.dto';
 import { WebhookPayloadDto } from '../dto/webhook-payload.dto';
+import { InstagramMediaService } from '../../infrastructure/services/instagram-media.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Comment } from '../../domain/models/comment.model';
+import { Media } from '../../domain/models/media.model';
 import axios from 'axios';
 
 @ApiTags('Instagram Webhook')
@@ -15,6 +20,9 @@ export class InstagramWebhookController {
     constructor(
         private readonly configService: ConfigService,
         @Inject('ILLMService') private readonly llmService: ILLMService,
+        private readonly mediaService: InstagramMediaService,
+        @InjectModel(Comment.name) private readonly commentModel: Model<Comment>,
+        @InjectModel(Media.name) private readonly mediaModel: Model<Media>,
     ) { }
 
     @Get('health')
@@ -63,6 +71,15 @@ export class InstagramWebhookController {
                     // Skip comments from the bot's own account
                     if (comment.from.username === botUsername) {
                         this.logger.log(`Skipping comment from bot's own account (${botUsername})`);
+                        // Store the comment in MongoDB
+                        await this.commentModel.create({
+                            commentId: comment.id,
+                            mediaId: comment.media.id,
+                            text: comment.text,
+                            username: comment.from.username,
+                            parentId: comment.parent_id,
+                            isProcessed: true,
+                        });
                         continue;
                     }
 
@@ -72,8 +89,32 @@ export class InstagramWebhookController {
                             this.logger.log(`This is a reply to comment ${comment.parent_id}`);
                         }
 
-                        // Generate response using LLM
-                        const response = await this.llmService.generateResponse(comment.text);
+                        // Store the comment in MongoDB
+                        const storedComment = await this.commentModel.create({
+                            commentId: comment.id,
+                            mediaId: comment.media.id,
+                            text: comment.text,
+                            username: comment.from.username,
+                            parentId: comment.parent_id,
+                            isProcessed: false,
+                        });
+
+                        // Get or fetch media context
+                        let media = await this.mediaModel.findOne({ mediaId: comment.media.id });
+                        if (!media) {
+                            this.logger.log(`Media ${comment.media.id} not found, fetching from Instagram API`);
+                            await this.mediaService.fetchAndStoreNewMedia();
+                            media = await this.mediaModel.findOne({ mediaId: comment.media.id });
+                            if (!media) {
+                                this.logger.log(`Media ${comment.media.id} Not found after update`);
+                            }
+                        }
+
+                        // Generate response using LLM with media context
+                        const response = await this.llmService.generateResponse(comment.text, {
+                            caption: media?.caption,
+                            type: media?.type,
+                        });
                         this.logger.log(`Generated response: ${response}`);
 
                         // Post reply to Instagram
@@ -89,6 +130,17 @@ export class InstagramWebhookController {
                                 },
                             }
                         );
+
+                        // Update comment with reply information
+                        await this.commentModel.updateOne(
+                            { commentId: comment.id },
+                            {
+                                replyText: response,
+                                repliedAt: new Date(),
+                                isProcessed: true,
+                            }
+                        );
+
                         this.logger.log(`Successfully replied to comment ${comment.id}`);
                         this.logger.log('Instagram API Response:', JSON.stringify(replyResponse.data, null, 2));
                     } catch (error) {

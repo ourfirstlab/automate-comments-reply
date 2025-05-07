@@ -1,3 +1,3 @@
 export interface ILLMService {
-    generateResponse(prompt: string): Promise<string>;
+    generateResponse(comment: string, mediaContext?: { caption?: string; type?: string }): Promise<string>;
 } 
