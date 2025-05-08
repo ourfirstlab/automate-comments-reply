@@ -16,6 +16,7 @@ export class RequestLoggerMiddleware implements NestMiddleware {
                 .digest('hex');
 
             if (req.headers['x-hub-signature-256'] !== `sha256=${calculatedChecksum256}`) {
+                console.log(`403 invalid signature, got: ${req.headers['x-hub-signature-256']} expected: sha256=${calculatedChecksum256}`)
                 return res.status(403).json({})
             }
         }
