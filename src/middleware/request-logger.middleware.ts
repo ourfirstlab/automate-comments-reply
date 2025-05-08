@@ -8,15 +8,17 @@ export class RequestLoggerMiddleware implements NestMiddleware {
         const rawBody = (req as any).rawBody;
         console.log('Raw Request Payload:', req.method, req.baseUrl, req.originalUrl, req.query, req.headers, rawBody ? rawBody.toString() : 'No raw body available');
 
-        const calculatedChecksum = crypto.createHmac('sha1', process.env.INSTAGRAM_APP_SECRET || "")
-            .update(rawBody)
-            .digest('hex');
 
-        const calculatedChecksum256 = crypto.createHmac('sha256', process.env.INSTAGRAM_APP_SECRET || "")
-            .update(rawBody)
-            .digest('hex');
 
-        console.log({ calculatedChecksum, calculatedChecksum256 })
+        if (!process.env.skipWebhookValidation && req.method === "POST") {
+            const calculatedChecksum256 = crypto.createHmac('sha256', process.env.INSTAGRAM_APP_SECRET || "")
+                .update(rawBody)
+                .digest('hex');
+
+            if (req.headers['x-hub-signature-256'] !== `sha256=${calculatedChecksum256}`) {
+                return res.status(403).json({})
+            }
+        }
 
         res.on('close', () => {
             const { statusCode, statusMessage } = res;
