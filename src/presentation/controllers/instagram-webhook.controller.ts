@@ -27,6 +27,7 @@ export class InstagramWebhookController {
         @InjectModel(Media.name) private readonly mediaModel: Model<Media>,
     ) {
         this.skipValidation = this.configService.get<boolean>('instagram.skipWebhookValidation') ?? false;
+        console.log(`skip validation: ${this.skipValidation}`);
         if (this.skipValidation) {
             this.logger.warn('Webhook validation is disabled. This should only be used in development!');
         }
@@ -68,32 +69,7 @@ export class InstagramWebhookController {
     @ApiHeader({ name: 'x-hub-signature-256', required: true, description: 'SHA-256 signature of the request body' })
     async handleWebhook(
         @Body() payload: WebhookPayloadDto,
-        @Headers('x-hub-signature-256') signature: string,
     ): Promise<void> {
-        if (!this.skipValidation) {
-            if (!signature) {
-                throw new BadRequestException('Missing X-Hub-Signature-256');
-            }
-
-            const verifyToken = this.configService.get<string>('instagram.webhookVerifyToken');
-            if (!verifyToken) {
-                throw new BadRequestException('Webhook verify token not configured');
-            }
-
-            const rawBody = JSON.stringify(payload);
-            const calculatedSignature = crypto
-                .createHmac('sha256', verifyToken)
-                .update(rawBody)
-                .digest('hex');
-            const expectedSignature = `sha256=${calculatedSignature}`;
-
-            if (signature !== expectedSignature) {
-                throw new BadRequestException('Signature mismatch');
-            }
-        } else {
-            this.logger.log('Skipping webhook signature validation in development mode');
-        }
-
         const accessToken = this.configService.get<string>('instagram.accessToken');
         const botUsername = this.configService.get<string>('instagram.username');
 
