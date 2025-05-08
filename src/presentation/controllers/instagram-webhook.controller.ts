@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Query, Body, HttpCode, HttpStatus, Inject, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Query, Body, HttpCode, HttpStatus, Inject, Logger, Headers, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiHeader } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ILLMService } from '../../domain/services/llm.service.interface';
 import { InstagramWebhookEntry } from '../../domain/models/instagram-comment.model';
@@ -11,11 +11,13 @@ import { Model } from 'mongoose';
 import { Comment } from '../../domain/models/comment.model';
 import { Media } from '../../domain/models/media.model';
 import axios from 'axios';
+import * as crypto from 'crypto';
 
 @ApiTags('Instagram Webhook')
 @Controller('webhook')
 export class InstagramWebhookController {
     private readonly logger = new Logger(InstagramWebhookController.name);
+    private readonly skipValidation: boolean;
 
     constructor(
         private readonly configService: ConfigService,
@@ -23,7 +25,12 @@ export class InstagramWebhookController {
         private readonly mediaService: InstagramMediaService,
         @InjectModel(Comment.name) private readonly commentModel: Model<Comment>,
         @InjectModel(Media.name) private readonly mediaModel: Model<Media>,
-    ) { }
+    ) {
+        this.skipValidation = this.configService.get<boolean>('instagram.skipWebhookValidation') ?? false;
+        if (this.skipValidation) {
+            this.logger.warn('Webhook validation is disabled. This should only be used in development!');
+        }
+    }
 
     @Get('health')
     @HttpCode(HttpStatus.OK)
@@ -58,7 +65,35 @@ export class InstagramWebhookController {
     @ApiOperation({ summary: 'Handle webhook notifications' })
     @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
     @ApiResponse({ status: 400, description: 'Invalid webhook payload' })
-    async handleWebhook(@Body() payload: WebhookPayloadDto): Promise<void> {
+    @ApiHeader({ name: 'x-hub-signature-256', required: true, description: 'SHA-256 signature of the request body' })
+    async handleWebhook(
+        @Body() payload: WebhookPayloadDto,
+        @Headers('x-hub-signature-256') signature: string,
+    ): Promise<void> {
+        if (!this.skipValidation) {
+            if (!signature) {
+                throw new BadRequestException('Missing X-Hub-Signature-256');
+            }
+
+            const verifyToken = this.configService.get<string>('instagram.webhookVerifyToken');
+            if (!verifyToken) {
+                throw new BadRequestException('Webhook verify token not configured');
+            }
+
+            const rawBody = JSON.stringify(payload);
+            const calculatedSignature = crypto
+                .createHmac('sha256', verifyToken)
+                .update(rawBody)
+                .digest('hex');
+            const expectedSignature = `sha256=${calculatedSignature}`;
+
+            if (signature !== expectedSignature) {
+                throw new BadRequestException('Signature mismatch');
+            }
+        } else {
+            this.logger.log('Skipping webhook signature validation in development mode');
+        }
+
         const accessToken = this.configService.get<string>('instagram.accessToken');
         const botUsername = this.configService.get<string>('instagram.username');
 
