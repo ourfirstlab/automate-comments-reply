@@ -27,6 +27,7 @@ export class InstagramWebhookController {
         @InjectModel(Media.name) private readonly mediaModel: Model<Media>,
     ) {
         this.skipValidation = this.configService.get<boolean>('instagram.skipWebhookValidation') ?? false;
+        console.log(`skip validation: ${this.skipValidation}`);
         if (this.skipValidation) {
             this.logger.warn('Webhook validation is disabled. This should only be used in development!');
         }
