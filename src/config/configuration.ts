@@ -4,6 +4,9 @@ export default () => ({
         webhookVerifyToken: process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
         username: process.env.INSTAGRAM_USERNAME,
         userId: process.env.INSTAGRAM_USER_ID,
+        appSecret: process.env.INSTAGRAM_APP_SECRET,
+        skipWebhookValidation: process.env.INSTAGRAM_SKIP_WEBHOOK_VALIDATION
+
     },
     openRouter: {
         apiKey: process.env.OPENROUTER_API_KEY,
